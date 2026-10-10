@@ -1,0 +1,18 @@
+seed: 42
+
+paths:
+  raw_unsw: data/raw/unsw
+  raw_prodipdata: data/raw/prodipdata
+  staging: data/staging
+
+unsw:
+  files:
+    - UNSW-NB15_1.csv
+    - UNSW-NB15_2.csv
+    - UNSW-NB15_3.csv
+    - UNSW-NB15_4.csv
+  features_file: NUSW-NB15_features.csv
+  expected_columns: 49
+
+prodipdata:
+  release: 2026-10                 # Release date of the dataset ปัจจุบันข้อมูลไม่ตรงกับ unsw dataset

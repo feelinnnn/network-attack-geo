@@ -1,0 +1,9 @@
+# Python 3.10 ขึ้นไป
+# ติดตั้ง: pip install -r requirements.txt
+
+# --- Progress 1: Ingest ---
+numpy>=1.26
+pandas>=2.2
+pyarrow>=16.0          # อ่าน/เขียน Parquet
+pyyaml>=6.0            # อ่าน configs/config.yaml
+pytest>=8.0
