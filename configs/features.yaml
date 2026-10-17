@@ -1,0 +1,56 @@
+# 10 คลาส: Normal + 9 ประเภทการโจมตี
+target: attack_cat
+
+# ไม่ใช้เทรน: ตัวระบุ (IP/พอร์ต), เวลา, คำตอบ, คอลัมน์ช่วยงาน
+# stime ไม่เข้าโมเดล แต่ใช้เรียงลำดับเวลาและวิเคราะห์ตามเวลา
+drop: [srcip, dstip, sport, dsport, stime, ltime, label, source_file]
+
+# จาก ProdIPData (join.py สร้าง) → โมเดล base+geo = base + geo
+geo: [src_country, dst_country, src_asn, dst_asn]
+
+# สงสัยว่า leak (ค่า TTL แยก attack ได้เกือบสมบูรณ์ใน UNSW-NB15)
+check: [sttl, dttl, ct_state_ttl]
+
+# คอลัมน์ข้อความ ต้อง encode ก่อนเทรน
+categorical: [proto, state, service, src_country, dst_country, src_asn, dst_asn]
+
+# คอลัมน์ที่เหลือทั้งหมด → โมเดลหลัก
+base:
+  - proto
+  - state
+  - dur
+  - sbytes
+  - dbytes
+  - sloss
+  - dloss
+  - service
+  - sload
+  - dload
+  - spkts
+  - dpkts
+  - swin
+  - dwin
+  - stcpb
+  - dtcpb
+  - smeansz
+  - dmeansz
+  - trans_depth
+  - res_bdy_len
+  - sjit
+  - djit
+  - sintpkt
+  - dintpkt
+  - tcprtt
+  - synack
+  - ackdat
+  - is_sm_ips_ports
+  - ct_flw_http_mthd
+  - is_ftp_login
+  - ct_ftp_cmd
+  - ct_srv_src
+  - ct_srv_dst
+  - ct_dst_ltm
+  - ct_src_ltm
+  - ct_src_dport_ltm
+  - ct_dst_sport_ltm
+  - ct_dst_src_ltm
