@@ -3,16 +3,33 @@ seed: 42
 paths:
   raw_unsw: data/raw/unsw
   raw_prodipdata: data/raw/prodipdata
-  staging: data/staging
+  staging: data/staging          
+  processed: data/processed      
+  reports: reports              
 
 unsw:
-  files:
-    - UNSW-NB15_1.csv
-    - UNSW-NB15_2.csv
-    - UNSW-NB15_3.csv
-    - UNSW-NB15_4.csv
+  files: [UNSW-NB15_1.csv, UNSW-NB15_2.csv, UNSW-NB15_3.csv, UNSW-NB15_4.csv]
   features_file: NUSW-NB15_features.csv
   expected_columns: 49
+  expected_rows: 2540047         # 700,001 x 3 + 440,044
+  expected_label: {0: 2218764, 1: 321283}
 
 prodipdata:
-  release: 2026-10                 # Release date of the dataset ปัจจุบันข้อมูลไม่ตรงกับ unsw dataset
+  source: https://prodipdata.com/downloads-parquet-2026-10.html
+  license: "Source: ProdIPData — https://prodipdata.com/ — CC BY 4.0"
+  file: prefix_attributes_2026-10_iso-ALL.parquet
+  snapshot_month: "2026-10"
+  expected_rows: 14349493        
+  missing_value: "-"             # ProdIPData ใช้ "-" แทนค่าว่าง (เช่น ASNID, ASNType)
+  columns:
+    - snapshot_month
+    - IP24Prefix                 # key สำหรับ join เช่น 175.45.176.0/24
+    - CountryCode                # -> src_country / dst_country
+    - ASNID                      # -> src_asn / dst_asn
+    - ASNName                    # ด้านล่าง ใช้ใน ip_lookup.csv และ dashboard เท่านั้น
+    - ASNOrg
+    - ASNType
+    - ContinentCode
+    - CityName
+    - Latitude
+    - Longitude

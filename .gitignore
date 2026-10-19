@@ -1,6 +1,7 @@
 # ข้อมูล: ห้าม commit (ไฟล์ใหญ่) เก็บเฉพาะโครงโฟลเดอร์
 data/**
 !data/**/
+!data/**/.gitkeep
 
 # Python
 __pycache__/
