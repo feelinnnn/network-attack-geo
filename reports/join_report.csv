@@ -1,0 +1,9 @@
+﻿metric,value
+total_unique_ips,49
+ip_type_LOOPBACK,1
+ip_type_MULTICAST,2
+ip_type_PRIVATE,11
+ip_type_PUBLIC,35
+public_found_in_prodipdata,35
+public_not_found (UNKNOWN),0
+public_lookup_rate,100.0%

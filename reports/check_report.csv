@@ -1,0 +1,6 @@
+﻿check,passed,detail
+1_attack_cat,True,"unique=10, nulls=0, values=['Analysis', 'Backdoor', 'DoS', 'Exploits', 'Fuzzers', 'Generic', 'Normal', 'Reconnaissance', 'Shellcode', 'Worms']"
+2_no_duplicates,True,"duplicated_rows=0, total_rows=2,059,418"
+3_dtypes_nulls,True,OK
+4_row_count,True,"clean_flows=2,059,418, features=2,059,418"
+5_ip_lookup,True,"ips_in_features=49, ips_in_lookup=49, missing=0"
