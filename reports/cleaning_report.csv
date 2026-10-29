@@ -1,0 +1,16 @@
+rule,affected_rows
+attack_cat_trim,37762
+attack_cat_backdoors_to_backdoor,534
+attack_cat_fill_normal_when_label_0,2218764
+ct_flw_http_mthd_fill_na_to_0,1348145
+is_ftp_login_fill_na_to_0,1429879
+ct_ftp_cmd_fill_blank_to_0,1429879
+is_ftp_login_2_4_to_1,186
+sport_hex_to_int,6
+sport_hex_overflow_to_na,0
+sport_dash_to_na,2
+dsport_hex_to_int,295
+dsport_hex_overflow_to_na,2
+dsport_dash_to_na,7
+drop_duplicate_rows,480629
+attack_cat_unique_after_clean,10
