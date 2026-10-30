@@ -1,0 +1,11 @@
+﻿attack_cat,rows,conflict_rows,conflict_pct
+Backdoor,1983,1636,82.5
+Analysis,2184,1743,79.8
+DoS,5665,2041,36.0
+Fuzzers,21795,2859,13.1
+Reconnaissance,13357,1749,13.1
+Exploits,27599,2192,7.9
+Generic,25378,1794,7.1
+Worms,171,12,7.0
+Shellcode,1511,13,0.9
+Normal,1959771,1000,0.1
