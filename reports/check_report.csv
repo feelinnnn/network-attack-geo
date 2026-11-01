@@ -1,0 +1,12 @@
+﻿check,passed,detail
+"attack_cat: 10 classes, no missing",True,10 classes
+attack_cat: label 0 = Normal on every row,True,
+duplicates: none,True,0 duplicated
+missing: none in required columns,True,
+dtype: numeric columns are numeric,True,
+dtype: is_ftp_login is 0/1 only,True,
+dtype: ports within 0-65535,True,
+columns: match features.yaml,True,
+join: same row count before/after,True,"2,059,414 -> 2,059,414"
+join: ip_lookup.csv covers every IP,True,49 IPs
+expected: numbers match the team reference,True,"2,059,414 rows (expected 2,059,414)"

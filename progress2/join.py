@@ -14,253 +14,132 @@ Output: data/processed/features.parquet  (clean + คอลัมน์ geo)
 6. ProdIPData ใช้ "-" แทนค่าว่าง
 
 """
-
+import ipaddress
 import sys
-from ipaddress import IPv4Address, IPv4Network, AddressValueError
 from pathlib import Path
-
+ 
 import pandas as pd
-
-# ── ให้ import utils.py ที่ root ของ repo ได้ ──
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from utils import load_config, p
-
-
-# =====================================================================
-# ขั้นที่ 1: แยกประเภท IP
-# =====================================================================
-# ใช้โมดูล ipaddress ของ Python เพื่อจำแนก IP ออกเป็น 4 ประเภท:
-#   - LOOPBACK  : 127.0.0.0/8 (ต้องตรวจก่อน PRIVATE เพราะ ipaddress
-#                 นับ 127.x เป็น private ด้วย)
-#   - PRIVATE   : 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
-#   - MULTICAST : 224.0.0.0/4
-#   - PUBLIC    : ที่เหลือทั้งหมด (is_global = True)
-# =====================================================================
-def classify_ip(ip_str: str) -> str:
-    """จำแนกประเภทของ IP address
-    คืนค่า: 'PUBLIC', 'PRIVATE', 'LOOPBACK', 'MULTICAST', หรือ 'INVALID'
-    """
+ 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # ให้ import utils.py ที่ root ได้
+from utils import load_config, p  # load_config = อ่าน config.yaml, p = แปลง path ให้อ้างอิงจาก root ของ repo
+ 
+STATUSES = ["FOUND", "UNKNOWN", "PRIVATE", "LOOPBACK", "MULTICAST", "INVALID"]  # สถานะทั้งหมดใน join_report
+ 
+ 
+def require_file(path: Path) -> None:  # หยุดพร้อมบอกชื่อไฟล์ ถ้ายังไม่ได้รันขั้นก่อนหน้า
+    if not path.exists():
+        raise FileNotFoundError(f"not found: {path} (run the previous step first)")
+ 
+ 
+# IP -> ประเภท / บล็อก /24
+def ip_type(ip: str) -> str:  # ProdIPData มีแค่ PUBLIC ประเภทอื่นไม่ต้องหา ใส่ชื่อประเภทแทน
     try:
-        addr = IPv4Address(ip_str.strip())
-    except (AddressValueError, ValueError, AttributeError):
-        return "INVALID"                    # IP ไม่ถูกรูปแบบ
-
-    # ต้องตรวจ loopback ก่อน private เพราะ is_private จะ return True สำหรับ 127.x ด้วย
-    if addr.is_loopback:                    # 127.0.0.0/8
-        return "LOOPBACK"
-    if addr.is_private:                     # 10.x, 172.16-31.x, 192.168.x
-        return "PRIVATE"
-    if addr.is_multicast:                   # 224.0.0.0/4
-        return "MULTICAST"
-    return "PUBLIC"                         # ที่เหลือคือ IP สาธารณะ
-
-
-# =====================================================================
-# ขั้นที่ 2: แปลง IP เป็น /24 prefix
-# =====================================================================
-# ProdIPData ใช้ key เป็น IP24Prefix เช่น "175.45.176.0/24"
-# ต้องแปลง IP เช่น "175.45.176.3" -> "175.45.176.0/24"
-# โดยการ mask octet สุดท้ายเป็น 0 แล้วต่อ /24
-# =====================================================================
-def ip_to_prefix24(ip_str: str) -> str:
-    """แปลง IP address เป็น /24 prefix string
-    เช่น '175.45.176.3' -> '175.45.176.0/24'
-    """
-    try:
-        net = IPv4Network(ip_str.strip() + "/24", strict=False)
-        return str(net)                     # เช่น '175.45.176.0/24'
-    except (AddressValueError, ValueError, AttributeError):
-        return ""
-
-
-# =====================================================================
-# ขั้นที่ 3: สร้าง lookup table จาก IP ที่ไม่ซ้ำทั้งหมด
-# =====================================================================
-# แทนที่จะ classify + lookup ทุกแถว (2 ล้านแถว)
-# เราหา IP ที่ไม่ซ้ำก่อน (จำนวนน้อยกว่ามาก) แล้วสร้าง lookup table
-# จากนั้น map กลับไปที่ DataFrame หลัก -> เร็วกว่ามาก
-# =====================================================================
-def build_ip_lookup(df: pd.DataFrame, ip_table: pd.DataFrame,
-                    missing_val: str) -> pd.DataFrame:
-    """สร้าง lookup table: IP ทุกตัว -> ประเภท, ประเทศ, ASN
-
-    Parameters
-    ----------
-    df : DataFrame ของ clean_flows (มีคอลัมน์ srcip, dstip)
-    ip_table : DataFrame ของ ProdIPData (มีคอลัมน์ IP24Prefix, CountryCode, ASNID ฯลฯ)
-    missing_val : ค่าที่ ProdIPData ใช้แทนค่าว่าง (เช่น "-")
-
-    Returns
-    -------
-    DataFrame ที่มีคอลัมน์: ip, ip_type, prefix24, country, asn, asn_name, ...
-    """
-    # --- รวบรวม IP ที่ไม่ซ้ำจากทั้ง srcip และ dstip ---
-    all_ips = pd.concat([df["srcip"], df["dstip"]]).dropna().unique()
-    print(f"  unique IPs: {len(all_ips):,}")
-
-    # --- จำแนกประเภท IP ---
-    lookup = pd.DataFrame({"ip": all_ips})
-    lookup["ip_type"] = lookup["ip"].apply(classify_ip)
-
-    # --- แปลง public IP เป็น /24 prefix ---
-    mask_public = lookup["ip_type"] == "PUBLIC"
-    lookup["prefix24"] = ""
-    lookup.loc[mask_public, "prefix24"] = lookup.loc[mask_public, "ip"].apply(ip_to_prefix24)
-
-    # --- join กับ ProdIPData เฉพาะ public IP ---
-    # ใช้ left join เพื่อให้ทุก IP ยังอยู่ (หาไม่เจอจะเป็น NaN)
-    lookup = lookup.merge(
-        ip_table[["IP24Prefix", "CountryCode", "ASNID", "ASNName",
-                  "ASNOrg", "ASNType", "ContinentCode",
-                  "CityName", "Latitude", "Longitude"]],
-        left_on="prefix24",
-        right_on="IP24Prefix",
-        how="left",
-    )
-
-    # --- จัดการค่าว่าง ---
-    # ProdIPData ใช้ "-" แทนค่าว่าง -> เปลี่ยนเป็น NaN
-    for col in ["CountryCode", "ASNID", "ASNName", "ASNOrg", "ASNType",
-                "ContinentCode", "CityName"]:
-        if col in lookup.columns:
-            lookup[col] = lookup[col].replace(missing_val, pd.NA)
-
-    # --- IP ที่ไม่ใช่ PUBLIC -> ใส่ชื่อประเภทแทนประเทศ/ASN ---
-    # เช่น PRIVATE, LOOPBACK, MULTICAST -> country = "PRIVATE", asn = "PRIVATE"
-    for ip_type in ["PRIVATE", "LOOPBACK", "MULTICAST", "INVALID"]:
-        mask_type = lookup["ip_type"] == ip_type
-        if mask_type.any():
-            lookup.loc[mask_type, "CountryCode"] = ip_type
-            lookup.loc[mask_type, "ASNID"] = ip_type
-
-    # --- public IP ที่หาไม่เจอใน ProdIPData -> UNKNOWN ---
-    mask_unknown = mask_public & lookup["CountryCode"].isna()
-    lookup.loc[mask_unknown, "CountryCode"] = "UNKNOWN"
-    lookup.loc[mask_unknown, "ASNID"] = "UNKNOWN"
-
-    # ลบคอลัมน์ที่ไม่ต้องการ
-    lookup = lookup.drop(columns=["IP24Prefix"], errors="ignore")
-
-    return lookup
-
-
-# =====================================================================
-# ขั้นที่ 4: Join กลับเข้า DataFrame หลัก
-# =====================================================================
-# ใช้ lookup table ที่สร้างมา map ค่า country และ ASN ให้ทั้ง srcip และ dstip
-# ผลลัพธ์: เพิ่ม 4 คอลัมน์ -> src_country, dst_country, src_asn, dst_asn
-# =====================================================================
-def join_geo(df: pd.DataFrame, lookup: pd.DataFrame) -> pd.DataFrame:
-    """Join ข้อมูล geo เข้ากับ DataFrame หลัก ผ่าน lookup table
-
-    สร้างคอลัมน์ใหม่: src_country, dst_country, src_asn, dst_asn
-    """
-    rows_before = len(df)
-
-    # สร้าง dict สำหรับ map เร็วกว่า merge ซ้ำ 2 รอบ
-    ip_to_country = lookup.set_index("ip")["CountryCode"].to_dict()
-    ip_to_asn = lookup.set_index("ip")["ASNID"].to_dict()
-
-    # --- map srcip ---
-    df["src_country"] = df["srcip"].map(ip_to_country)
-    df["src_asn"] = df["srcip"].map(ip_to_asn)
-
-    # --- map dstip ---
-    df["dst_country"] = df["dstip"].map(ip_to_country)
-    df["dst_asn"] = df["dstip"].map(ip_to_asn)
-
-    # --- ตรวจจำนวนแถว ---
-    rows_after = len(df)
-    if rows_before != rows_after:
-        raise ValueError(
-            f"row count changed after join: {rows_before:,} -> {rows_after:,}"
-        )
-    print(f"  rows before/after join: {rows_before:,} / {rows_after:,} (OK)")
-
-    return df
-
-
-# =====================================================================
-# ขั้นที่ 5: สร้าง reports
-# =====================================================================
-def save_join_report(lookup: pd.DataFrame, report_path: Path) -> None:
-    """บันทึก join_report.csv: สรุปจำนวน IP แต่ละประเภทและสถานะการ lookup"""
-    # --- นับตามประเภท IP ---
-    type_counts = lookup["ip_type"].value_counts().to_dict()
-
-    # --- นับสถานะ lookup สำหรับ public IP ---
-    mask_public = lookup["ip_type"] == "PUBLIC"
-    public_total = mask_public.sum()
-    found = mask_public & (lookup["CountryCode"] != "UNKNOWN")
-    not_found = mask_public & (lookup["CountryCode"] == "UNKNOWN")
-
-    rows = []
-    rows.append({"metric": "total_unique_ips", "value": len(lookup)})
-    for ip_type, count in sorted(type_counts.items()):
-        rows.append({"metric": f"ip_type_{ip_type}", "value": count})
-    rows.append({"metric": "public_found_in_prodipdata", "value": int(found.sum())})
-    rows.append({"metric": "public_not_found (UNKNOWN)", "value": int(not_found.sum())})
-    rows.append({"metric": "public_lookup_rate",
-                 "value": f"{found.sum() / public_total * 100:.1f}%" if public_total else "N/A"})
-
-    report = pd.DataFrame(rows)
-    report.to_csv(report_path, index=False, encoding="utf-8-sig")
-    print(f"  saved {report_path}")
-
-    # แสดงสรุป
-    print("\n-- join report --")
-    for _, r in report.iterrows():
-        print(f"  {r['metric']}: {r['value']}")
-
-
-def save_ip_lookup(lookup: pd.DataFrame, lookup_path: Path) -> None:
-    """บันทึก ip_lookup.csv: IP ทุกตัว -> ประเภท / ประเทศ / ASN"""
-    lookup.to_csv(lookup_path, index=False, encoding="utf-8-sig")
-    print(f"  saved {lookup_path}")
-
-
-# =====================================================================
-# main: รันทุกขั้นตอนตามลำดับ
-# =====================================================================
+        addr = ipaddress.ip_address(ip.strip())
+    except ValueError:
+        return "INVALID"  # รูปแบบ IP ผิด
+    if addr.is_loopback:
+        return "LOOPBACK"  # 127.x ต้องเช็กก่อน private เพราะ Python นับ 127.x เป็น private ด้วย
+    if addr.is_multicast:
+        return "MULTICAST"  # 224.x ส่งหาหลายเครื่องพร้อมกัน
+    if addr.is_private:
+        return "PRIVATE"  # 10.x, 192.168.x วงแลน
+    return "PUBLIC"  # IP บนอินเทอร์เน็ต -> ไปหาใน ProdIPData
+ 
+ 
+def to_prefix24(ip: str) -> str:  # 175.45.176.3 -> 175.45.176.0/24 (รูปเดียวกับ IP24Prefix)
+    return ip.strip().rsplit(".", 1)[0] + ".0/24"
+ 
+ 
+# ProdIPData
+def load_prodip(cfg: dict, prefixes: list[str]) -> pd.DataFrame:  # อ่านเฉพาะบล็อกที่ใช้ (4 จาก 14 ล้าน) ประหยัด RAM
+    path = p(cfg["paths"]["staging"]) / "prodipdata.parquet"
+    require_file(path)
+    cols = [c for c in cfg["prodipdata"]["columns"] if c != "snapshot_month"]  # snapshot_month ค่าเดียวทุกแถว ไม่ต้องใช้
+    ip = pd.read_parquet(path, columns=cols, filters=[("IP24Prefix", "in", prefixes)])  # filters = อ่านเฉพาะแถวที่ตรงรายการ
+    ip = ip.replace(cfg["prodipdata"]["missing_value"], pd.NA)  # "-" = ไม่มีข้อมูล -> ค่าว่าง (จะกลายเป็น UNKNOWN ทีหลัง)
+    if ip["IP24Prefix"].duplicated().any():  # 1 บล็อกต้องมี 1 แถว ไม่งั้น join แล้วแถวเพิ่ม
+        raise ValueError("IP24Prefix duplicated in prodipdata")
+    return ip.set_index("IP24Prefix")  # ค้นหาด้วยชื่อบล็อกได้ทันที
+ 
+ 
+# ตาราง IP -> ประเทศ / ASN (1 แถวต่อ 1 IP)
+def build_ip_lookup(flows: pd.DataFrame, cfg: dict) -> pd.DataFrame:  # 2 ล้านแถวมี IP ไม่ซ้ำแค่ 49 ตัว -> หาครั้งเดียวต่อ IP
+    src_n, dst_n = flows["srcip"].value_counts(), flows["dstip"].value_counts()  # IP นี้เป็นผู้ส่ง / ผู้รับกี่แถว
+    lk = pd.DataFrame({"ip": sorted(set(src_n.index) | set(dst_n.index))})  # รวม IP ทั้ง 2 ฝั่งแบบไม่ซ้ำ
+    lk["ip_type"] = lk["ip"].map(ip_type)
+    is_pub = lk["ip_type"] == "PUBLIC"
+    lk["ip24prefix"] = lk["ip"].where(is_pub).map(to_prefix24, na_action="ignore")  # แปลงเฉพาะ PUBLIC
+ 
+    prodip = load_prodip(cfg, sorted(lk["ip24prefix"].dropna().unique()))  # ส่งรายการบล็อกที่ต้องหาไป filters
+    lk = lk.join(prodip, on="ip24prefix")  # ต่อคอลัมน์ของ ProdIPData ตามบล็อก
+    found = is_pub & lk["ip24prefix"].isin(prodip.index)  # หาบล็อกเจอในตารางไหม
+ 
+    # PUBLIC เจอ -> ค่าจากตาราง ("-" -> UNKNOWN), PUBLIC ไม่เจอ -> UNKNOWN, อื่นๆ -> ชื่อประเภท
+    lk["status"] = lk["ip_type"].where(~is_pub, "UNKNOWN").mask(found, "FOUND")
+    for new, col in [("country", "CountryCode"), ("asn", "ASNID")]:
+        lk[new] = lk["ip_type"].where(~is_pub, lk[col].astype("string").fillna("UNKNOWN"))
+    lk = lk.drop(columns=["CountryCode", "ASNID"])  # ได้เป็น country / asn แล้ว
+ 
+    lk["src_rows"] = lk["ip"].map(src_n).fillna(0).astype("int64")  # จำนวนแถวที่ IP นี้เป็นผู้ส่ง
+    lk["dst_rows"] = lk["ip"].map(dst_n).fillna(0).astype("int64")  # จำนวนแถวที่ IP นี้เป็นผู้รับ
+    first = ["ip", "ip_type", "status", "ip24prefix", "country", "asn"]  # คอลัมน์สำคัญไว้หน้าสุด
+    return lk[first + [c for c in lk.columns if c not in first]]
+ 
+ 
+# สรุปผลการ join (all = ภาพรวม IP, src / dst = แยกฝั่ง พร้อมจำนวนแถว)
+def join_report(lk: pd.DataFrame, rows_before: int, rows_after: int) -> pd.DataFrame:
+    out = [("all", "unique_ips", len(lk), None)]
+    all_n = lk["status"].value_counts()
+    out += [("all", status, int(all_n.get(status, 0)), None) for status in STATUSES]  # กี่ IP ในแต่ละสถานะ
+    for side in ["src", "dst"]:
+        g = lk[lk[f"{side}_rows"] > 0].groupby("status")  # เฉพาะ IP ที่เคยอยู่ฝั่งนี้
+        for status in STATUSES:
+            n_ip = int(g.size().get(status, 0))  # กี่ IP
+            n_rows = int(g[f"{side}_rows"].sum().get(status, 0))  # รวมกี่แถว
+            out.append((side, status, n_ip, n_rows))
+    out.append(("all", "rows_before_join", None, rows_before))  # ก่อน/หลังต้องเท่ากัน
+    out.append(("all", "rows_after_join", None, rows_after))
+    return pd.DataFrame(out, columns=["side", "status", "ips", "rows"]).astype({"ips": "Int64", "rows": "Int64"})
+ 
+ 
 def main() -> None:
     cfg = load_config()
-    missing_val = cfg["prodipdata"]["missing_value"]    # "-"
-
-    # ── เตรียม path ──
-    processed = p(cfg["paths"]["processed"])
-    staging = p(cfg["paths"]["staging"])
-    reports = p(cfg["paths"]["reports"])
-    processed.mkdir(parents=True, exist_ok=True)
-    reports.mkdir(parents=True, exist_ok=True)
-
-    # ── โหลดข้อมูล ──
-    print("loading clean_flows")
-    df = pd.read_parquet(processed / "clean_flows.parquet")
-    print(f"  {len(df):,} rows, {df.shape[1]} columns")
-
-    print("loading prodipdata")
-    ip_table = pd.read_parquet(staging / "prodipdata.parquet")
-    print(f"  {len(ip_table):,} rows")
-
-    # ── สร้าง lookup table ──
-    print("\nbuilding IP lookup table...")
-    lookup = build_ip_lookup(df, ip_table, missing_val)
-
-    # ── join geo กลับเข้า DataFrame หลัก ──
-    print("\njoining geo data...")
-    df = join_geo(df, lookup)
-    print(f"  added columns: src_country, dst_country, src_asn, dst_asn")
-
-    # ── บันทึกผลลัพธ์ ──
-    output_path = processed / "features.parquet"
-    df.to_parquet(output_path, index=False)
-    print(f"\nsaved {output_path}")
-    print(f"  final: {len(df):,} rows, {df.shape[1]} columns")
-
-    # ── บันทึก reports ──
-    save_ip_lookup(lookup, reports / "ip_lookup.csv")
-    save_join_report(lookup, reports / "join_report.csv")
-
-
+    feat_cfg = load_config("features.yaml")
+    proc, rep_dir = p(cfg["paths"]["processed"]), p(cfg["paths"]["reports"])
+    require_file(proc / "clean_flows.parquet")
+    rep_dir.mkdir(parents=True, exist_ok=True)
+ 
+    print("load clean_flows + build IP -> country / ASN")
+    flows = pd.read_parquet(proc / "clean_flows.parquet")
+    rows_before = len(flows)
+    lk = build_ip_lookup(flows, cfg)
+    print(f"  {rows_before:,} rows, unique IPs {len(lk)}: {lk['ip_type'].value_counts().to_dict()}")
+ 
+    print("put country / ASN into flows")
+    by_ip = lk.set_index("ip")
+    for side in ["src", "dst"]:  # เติมกลับทุกแถวตาม IP ของแต่ละฝั่ง
+        flows[f"{side}_country"] = flows[f"{side}ip"].map(by_ip["country"])
+        flows[f"{side}_asn"] = flows[f"{side}ip"].map(by_ip["asn"])
+    geo = feat_cfg["geo"]  # ชื่อคอลัมน์ geo ต้องตรงกับ features.yaml
+    flows = flows[[c for c in flows.columns if c not in geo] + geo]  # ย้ายคอลัมน์ geo ไปท้ายตาราง
+ 
+    if len(flows) != rows_before:  # แถวต้องไม่เพิ่มไม่หาย
+        raise AssertionError("number of rows after join is not the same as before")
+    if flows[geo].isna().any().any():  # ทุกแถวต้องได้ค่า geo
+        raise AssertionError("there are rows without geo values")
+ 
+    print("save features.parquet + ip_lookup.csv + join_report.csv")
+    flows.to_parquet(proc / "features.parquet", index=False)
+    lk.to_csv(rep_dir / "ip_lookup.csv", index=False, encoding="utf-8-sig")
+    report = join_report(lk, rows_before, len(flows))
+    report.to_csv(rep_dir / "join_report.csv", index=False, encoding="utf-8-sig")
+    print("saved -> data/processed/features.parquet")
+    print("saved -> reports/ip_lookup.csv, reports/join_report.csv\n")
+    print(report[(report["rows"].fillna(1) > 0) & (report["ips"].fillna(1) > 0)].to_string(index=False))  # ซ่อนแถวที่เป็น 0
+    print("\npublic blocks:")
+    print(lk[lk["status"] == "FOUND"][["ip24prefix", "country", "asn", "ASNName"]]
+          .drop_duplicates().to_string(index=False))
+ 
+ 
 if __name__ == "__main__":
     main()

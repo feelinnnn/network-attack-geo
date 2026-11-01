@@ -1,0 +1,20 @@
+﻿column,rule,rows
+attack_cat,cut leading/trailing spaces,37762
+attack_cat,Backdoors -> Backdoor,534
+attack_cat,null (label 0) -> Normal,2218764
+ct_flw_http_mthd,null -> 0,1348145
+is_ftp_login,null -> 0,1429879
+ct_ftp_cmd,null -> 0,1429879
+is_ftp_login,2 / 4 -> 1,186
+sport,hex (<= 65535) -> int,6
+sport,hex exceed 65535 -> null,0
+sport,"""-"" -> null",2
+dsport,hex (<= 65535) -> int,295
+dsport,hex exceed 65535 -> null,2
+dsport,"""-"" -> null",7
+(all),drop duplicates (file 1),59213
+(all),drop duplicates (file 2),63249
+(all),drop duplicates (file 3),224845
+(all),drop duplicates (file 4),133326
+(all),rows before clean,2540047
+(all),rows after clean,2059414
