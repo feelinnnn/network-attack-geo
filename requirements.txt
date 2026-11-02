@@ -7,3 +7,6 @@ pandas>=2.2
 pyarrow>=16.0          # อ่าน/เขียน Parquet
 pyyaml>=6.0            # อ่าน configs/config.yaml
 pytest>=8.0
+seaborn
+matplotlib 
+scikit-learn
