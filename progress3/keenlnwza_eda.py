@@ -43,7 +43,7 @@ from utils import load_config, p
 # ----------------------------------------------------------------------
 NAME = "keen"                 # ชื่อ -> ขึ้นต้นไฟล์กราฟ
 ROOT = Path(__file__).resolve().parents[1]
-FIG_DIR = ROOT / "reports" / "figures"
+FIG_DIR = ROOT / "reports" / "figures" / "Keen"
 
 sns.set_theme(style="whitegrid", font_scale=0.9)
 plt.rcParams.update({"figure.dpi": 150, "savefig.bbox": "tight"})
@@ -55,7 +55,7 @@ findings: list[dict] = []     # เก็บข้อค้นพบ -> สร�
 
 
 def save(fig: plt.Figure, tag: str) -> Path:
-    """บันทึกกราฟลง reports/figures/keen_<tag>.png"""
+    """บันทึกกราฟลง reports/figures/Keen/keen_<tag>.png"""
     out = FIG_DIR / f"{NAME}_{tag}.png"
     fig.savefig(out)
     plt.close(fig)
@@ -378,7 +378,8 @@ def write_report(out_path: Path) -> None:
         buf.write(f"## {i}. {f['title']}\n\n")
         buf.write(f"**เห็นอะไร:** {f['see']}\n\n")
         buf.write(f"**ตัดสินใจ/เข้าใจอะไร:** {f['decide']}\n\n")
-        buf.write(f"![{f['title']}](figures/{NAME}_{i}_*.png)\n\n")
+        img = next(FIG_DIR.glob(f"{NAME}_{i}_*.png"), None)  # ชื่อไฟล์จริงของกราฟข้อนี้
+        buf.write(f"![{f['title']}](figures/Keen/{img.name if img else ''})\n\n")
     buf.write("---\n*สร้างอัตโนมัติจาก progress3/eda.py*\n")
     out_path.write_text(buf.getvalue(), encoding="utf-8")
     print(f"  saved -> {out_path.relative_to(ROOT)}")

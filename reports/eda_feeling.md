@@ -1,6 +1,6 @@
 # EDA — feeling
 
-ข้อมูล: features.parquet (2,059,414 แถว, UNSW + ProdIPData) · กราฟอยู่ใน reports/figures/feeling_*.png
+ข้อมูล: features.parquet (2,059,414 แถว, UNSW + ProdIPData) · กราฟอยู่ใน reports/figures/Feeling/feeling_*.png
 
 ## 1. การโจมตีตามเวลา
 

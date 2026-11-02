@@ -19,11 +19,11 @@
 
 ## รูปภาพที่สร้างขึ้น (Generated figures)
 
-- `reports/figures/Pimmy_class_balance.png`
-- `reports/figures/Pimmy_geo_attack_rate.png`
-- `reports/figures/Pimmy_protocol_attack_rate.png`
-- `reports/figures/Pimmy_numeric_distributions.png`
-- `reports/figures/Pimmy_ttl_leakage_check.png`
-- `reports/figures/Pimmy_state_attack_rate.png`
+- `reports/figures/Pimmy/Pimmy_class_balance.png`
+- `reports/figures/Pimmy/Pimmy_geo_attack_rate.png`
+- `reports/figures/Pimmy/Pimmy_protocol_attack_rate.png`
+- `reports/figures/Pimmy/Pimmy_numeric_distributions.png`
+- `reports/figures/Pimmy/Pimmy_ttl_leakage_check.png`
+- `reports/figures/Pimmy/Pimmy_state_attack_rate.png`
 
 *การสร้างกราฟและการสุ่มข้อมูล (Sampling) ในรายงานฉบับนี้ใช้การจัดเรียงหรือกำหนดค่า Seed แบบตายตัว (Deterministic) เพื่อให้ผลลัพธ์สามารถทำซ้ำได้เหมือนเดิมทุกครั้ง*

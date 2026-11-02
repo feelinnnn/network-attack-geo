@@ -13,7 +13,7 @@ import seaborn as sns
 
 ROOT = Path(__file__).resolve().parents[1]
 FEATURES_PATH = ROOT / "data" / "processed" / "features.parquet"
-FIGURES_DIR = ROOT / "reports" / "figures"
+FIGURES_DIR = ROOT / "reports" / "figures" / "Pimmy"
 REPORT_PATH = ROOT / "reports" / "eda_Pimmy.md"
 PREFIX = "Pimmy"
 RANDOM_STATE = 42
@@ -217,7 +217,7 @@ def main() -> None:
         "",
         "## Generated figures",
         "",
-        *[f"- `reports/figures/{PREFIX}_{name}.png`" for name in figure_names],
+        *[f"- `reports/figures/Pimmy/{PREFIX}_{name}.png`" for name in figure_names],
         "",
         "Plots use deterministic ordering or a fixed random seed where sampling is required.",
     ]

@@ -8,7 +8,7 @@ import pandas as pd
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 DEFAULT_CONFLICT_PATH = BASE_DIR / "reports" / "label_conflicts.csv"
-DEFAULT_FIG_DIR = BASE_DIR / "reports" / "figures" / "art"
+DEFAULT_FIG_DIR = BASE_DIR / "reports" / "figures" / "Art"
 
 
 def run_label_conflicts(df: pd.DataFrame = None, fig_dir: Path = None, conflict_path: Path = None):

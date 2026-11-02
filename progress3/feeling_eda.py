@@ -504,7 +504,7 @@ def main() -> None:
     global FIG
     cfg, feat = load_config(), load_config("features.yaml")
     proc, rep = p(cfg["paths"]["processed"]), p(cfg["paths"]["reports"])
-    FIG = rep / "figures"
+    FIG = rep / "figures" / "Feeling"
     FIG.mkdir(parents=True, exist_ok=True)
     for f in [proc / "features.parquet", rep / "ip_lookup.csv", rep / "label_conflicts.csv", rep / "cleaning_report.csv"]:
         if not f.exists():
@@ -527,7 +527,7 @@ def main() -> None:
 
     out = rep / f"eda_{NAME}.md"
     out.write_text(f"# EDA — {NAME}\n\nข้อมูล: features.parquet ({len(df):,} แถว, UNSW + ProdIPData) · "
-                   f"กราฟอยู่ใน reports/figures/{NAME}_*.png\n\n" + "\n".join(REPORT), encoding="utf-8")
+                   f"กราฟอยู่ใน reports/figures/Feeling/{NAME}_*.png\n\n" + "\n".join(REPORT), encoding="utf-8")
     print(f"\nsaved -> {out}")
 
 
