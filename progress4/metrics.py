@@ -1,10 +1,12 @@
 """Progress 4 — โหลดข้อมูล + วัดผล (ทุกคนใช้ไฟล์นี้ตัวเดียวกัน ห้ามแก้)
 
 load_split("train" / "val" / "test") -> X (base 38 คอลัมน์), y (attack_cat)
-evaluate(...)        -> Macro F1, PR-AUC, Recall  เขียนลง reports/results_<model>.csv
+evaluate(...)        -> Macro F1, PR-AUC, Recall  ต่อแถวใหม่ลง reports/results_<model>.csv ทุกครั้งที่เรียก
+                        (1 แถว = 1 ครั้งที่ลอง พร้อม params ที่ใช้ -> ใช้เป็นตารางการจูน)
 evaluate_binary(...) -> แบบเดียวกันสำหรับ Isolation Forest (ทายได้แค่ ปกติ / โจมตี)
 """
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -32,34 +34,34 @@ def load_split(name: str, extra: list[str] | None = None) -> tuple[pd.DataFrame,
     return df[cols], df[FEAT["target"]].astype(str)
 
 
-# เขียน 1 แถวลง results_<model>.csv  รันซ้ำ (model, split) เดิม -> ทับแถวเดิม
-def save(row: dict) -> None:
+# ต่อ 1 แถวท้าย results_<model>.csv (ไม่ทับของเดิม)
+def save(row: dict, params) -> None:
+    row = {"time": f"{datetime.now():%Y-%m-%d %H:%M}", **row, "params": str(params)}  # เวลาที่รัน + ค่าที่ลอง
     out = REP / f"results_{row['model']}.csv"
     old = pd.read_csv(out) if out.exists() else pd.DataFrame()
-    if len(old):
-        old = old[old["split"] != row["split"]]
     pd.concat([old, pd.DataFrame([row])], ignore_index=True).round(4).to_csv(out, index=False, encoding="utf-8-sig")
-    print(f"  [{row['model']} | {row['split']}] Macro F1 {row['macro_f1']:.3f}  PR-AUC {row['pr_auc']:.3f}  Recall {row['recall']:.3f}")
+    print(f"  [{row['model']} | {row['split']}] Macro F1 {row['macro_f1']:.3f}  PR-AUC {row['pr_auc']:.3f}  "
+          f"Recall {row['recall']:.3f}  params {row['params']}")
 
 
-# y_score = model.predict_proba(X), score_classes = model.classes_
-def evaluate(y_true, y_pred, y_score, score_classes, model: str, split: str) -> dict:
+# y_score = model.predict_proba(X), score_classes = model.classes_, params = ค่าที่ลอง เช่น {"n_neighbors": 5}
+def evaluate(y_true, y_pred, y_score, score_classes, model: str, split: str, params=None) -> dict:
     y_true, y_pred = np.asarray(y_true).astype(str), np.asarray(y_pred).astype(str)
     score = np.asarray(y_score)[:, [list(score_classes).index(c) for c in CLASSES]]  # เรียงคอลัมน์ตาม CLASSES
     row = {"model": model, "split": split,
            "macro_f1": f1_score(y_true, y_pred, labels=CLASSES, average="macro", zero_division=0),
            "pr_auc": np.mean([average_precision_score(y_true == c, score[:, k]) for k, c in enumerate(CLASSES)]),
            "recall": recall_score(y_true, y_pred, labels=CLASSES, average="macro", zero_division=0)}
-    save(row)
+    save(row, params)
     return row
 
 
-# is_attack = True/False ต่อแถว, score = ยิ่งสูงยิ่งน่าจะโจมตี
-def evaluate_binary(y_true, is_attack, score, model: str, split: str) -> dict:
+# is_attack = True/False ต่อแถว, score = ยิ่งสูงยิ่งน่าจะโจมตี, params = ค่าที่ลอง
+def evaluate_binary(y_true, is_attack, score, model: str, split: str, params=None) -> dict:
     true_att = np.asarray(y_true).astype(str) != "Normal"
     row = {"model": model, "split": split,
            "macro_f1": f1_score(true_att, is_attack, average="macro", zero_division=0),
            "pr_auc": average_precision_score(true_att, score),
            "recall": recall_score(true_att, is_attack, average="macro", zero_division=0)}
-    save(row)
+    save(row, params)
     return row
