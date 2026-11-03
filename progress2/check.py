@@ -9,6 +9,10 @@ Input : ไฟล์ output ทั้งหมดของ clean.py และ jo
 4. จำนวนแถวก่อนและหลัง join เท่ากัน
 5. ip_lookup.csv มี IP ครบทุกตัว
 
+วิธีที่ใช้: Pandas Assertions
+  เขียน assertion function แต่ละข้อ ตรวจเงื่อนไขด้วย pandas vectorized operations
+  ไม่ต้องติดตั้ง library เพิ่ม, เร็ว, สมาชิกทุกคนอ่านรู้เรื่อง
+
 ตัวเลขสรุป
 """
 import sys
