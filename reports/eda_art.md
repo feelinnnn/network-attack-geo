@@ -4,7 +4,7 @@
 **ชุดข้อมูล:** `data/processed/features.parquet`  
 **จำนวนข้อมูลทั้งหมด:** 2,059,414 แถว, 54 คอลัมน์  
 **คลาสเป้าหมาย:** `attack_cat` (10 คลาส: Normal + 9 ประเภทการโจมตี)  
-**ตำแหน่งรูปภาพ:** `reports/figures/art/`  
+**ตำแหน่งรูปภาพ:** `reports/figures/Art/`  
 
 ---
 
@@ -25,7 +25,7 @@
 
 ## 1. การกระจายตัวของคลาสเป้าหมายและความไม่สมดุล (Target Class Imbalance)
 
-![Class Distribution](figures/art/01_class_distribution.png)
+![Class Distribution](figures/Art/01_class_distribution.png)
 
 ### สถิติที่พบ:
 - **Normal:** 1,959,771 แถว (95.16%)
@@ -52,7 +52,7 @@
 
 ## 2. การรั่วไหลของฟีเจอร์ TTL (TTL Leakage Verification)
 
-![TTL Leakage](figures/art/02_ttl_leakage_distribution.png)
+![TTL Leakage](figures/Art/02_ttl_leakage_distribution.png)
 
 ### สถิติที่พบ:
 - **Normal:** Mean ของ `sttl` อยู่ที่ 34.87 โดย Median อยู่ที่ 31.0
@@ -69,7 +69,7 @@
 
 ## 3. ความเสี่ยงการเรียนรู้ทางลัดจาก Geolocation (Geo Shortcut Risk)
 
-![Geo Shortcut Risk](figures/art/03_geo_shortcut_risk.png)
+![Geo Shortcut Risk](figures/Art/03_geo_shortcut_risk.png)
 
 ### สถิติที่พบ:
 - **AU (Australia):** 23,170 แถว เป็น Normal ทั้งหมด (0 Attacks)
@@ -87,7 +87,7 @@
 
 ## 4. ปัญหาความกำกวมของฟีเจอร์และเพดานทางทฤษฎี (Label Conflicts Analysis)
 
-![Label Conflicts](figures/art/04_label_conflicts_severity.png)
+![Label Conflicts](figures/Art/04_label_conflicts_severity.png)
 
 ### สถิติที่พบ (จาก `reports/label_conflicts.csv`):
 - **Backdoor:** ข้อมูล **82.5%** (1,636 จาก 1,983 แถว) มีค่าฟีเจอร์เหมือนกับคลาสอื่นทุกตัวแปร
@@ -106,7 +106,7 @@
 
 ## 5. การกระจายตัวแบบหางยาวของฟีเจอร์โฟลว์ (Numerical Skewness & Log Transforms)
 
-![Flow Features Log Dist](figures/art/05_flow_features_log_dist.png)
+![Flow Features Log Dist](figures/Art/05_flow_features_log_dist.png)
 
 ### สถิติที่พบ:
 - `dur` (Duration): มัธยฐาน = 0.026s, ค่า 75% = 0.334s แต่ค่าสูงสุด = 8,786.6s (~2.4 ชั่วโมง)
@@ -123,7 +123,7 @@
 
 ## 6. ความจำเพาะของโปรโตคอลและเซอร์วิส (Protocol & Service Affinity)
 
-![Service Proto Heatmap](figures/art/06_service_proto_heatmap.png)
+![Service Proto Heatmap](figures/Art/06_service_proto_heatmap.png)
 
 ### สถิติที่พบ:
 - **Generic:** 78.6% เกิดขึ้นบน service `dns`
@@ -142,7 +142,7 @@
 
 ## 7. พฤติกรรมการนับการเชื่อมต่อและความถี่ทราฟฟิก (Connection Count Patterns: `ct_*`)
 
-![Connection Counts](figures/art/07_connection_counts.png)
+![Connection Counts](figures/Art/07_connection_counts.png)
 
 ### สถิติที่พบ:
 - **Generic (พฤติกรรม Flooding):** มีค่าการเชื่อมต่อซ้ำๆ สูงผิดปกติในทุกมิติ

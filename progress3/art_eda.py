@@ -2,13 +2,13 @@
 
 สคริปต์หลักสำหรับประสานงานและเรียกใช้ฟังก์ชันวิเคราะห์ข้อมูลในโฟลเดอร์ EDA/
 Input : data/processed/features.parquet  (ผลจาก Progress 2)
-Output: reports/figures/art/*.png        (กราฟ 7 ด้าน)
+Output: reports/figures/Art/*.png        (กราฟ 7 ด้าน)
         reports/eda_art.md               (รายงานสรุปข้อค้นพบ)
 
 เกณฑ์:
 - ทำ EDA ขั้นต่ำ 5 อย่าง (สคริปต์นี้ทำ 7 อย่างครอบคลุมทุกมิติ)
 - แต่ละอย่างตอบโจทย์: "เห็นอะไร -> เลยตัดสินใจ / เข้าใจอะไร"
-- บันทึกรูปใน reports/figures/art/
+- บันทึกรูปใน reports/figures/Art/
 - สรุปข้อค้นพบและเหตุผลการตัดสินใจใน reports/eda_art.md
 
 วิธีรัน (จาก root ของ repo):
@@ -37,7 +37,7 @@ from EDA import (
 )
 
 DATA_PATH = BASE_DIR / "data" / "processed" / "features.parquet"
-FIG_DIR = BASE_DIR / "reports" / "figures" / "art"
+FIG_DIR = BASE_DIR / "reports" / "figures" / "Art"
 MD_PATH = BASE_DIR / "reports" / "eda_art.md"
 
 
@@ -94,7 +94,7 @@ def eda_7_connection_counts(df: pd.DataFrame = None):
 # ----------------------------------------------------------------------
 
 def run_all_eda(df: pd.DataFrame = None):
-    """รันกระบวนการ EDA ครบทั้ง 7 ด้านและบันทึกรูปทั้งหมดลงใน reports/figures/art/"""
+    """รันกระบวนการ EDA ครบทั้ง 7 ด้านและบันทึกรูปทั้งหมดลงใน reports/figures/Art/"""
     FIG_DIR.mkdir(parents=True, exist_ok=True)
     print(f"[*] Output Figures Directory: {FIG_DIR}")
 
