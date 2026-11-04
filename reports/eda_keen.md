@@ -8,7 +8,7 @@
 
 **ตัดสินใจ/เข้าใจอะไร:** ต้องใช้ Stratified Split เสมอ และวัดผลด้วย Macro F1-Score ไม่ใช่ Accuracy เพราะโมเดลที่ทายว่า Normal ทุกแถวจะได้ Accuracy 95% แต่ F1 ของคลาสโจมตี = 0
 
-![Class Imbalance & Rare Classes](figures/keen_1_*.png)
+![Class Imbalance & Rare Classes](figures/Keen/keen_1_class_imbalance.png)
 
 ## 2. Geo Shortcut Risk
 
@@ -16,7 +16,7 @@
 
 **ตัดสินใจ/เข้าใจอะไร:** ต้องสร้าง Baseline Model แบบ Base-only (ไม่มี Geo) เทียบกับ Base+Geo ถ้า Geo ดีขึ้นมาก แปลว่าโมเดลอาศัย Shortcut -> ใช้จริงไม่ได้ (โลกจริงการโจมตีมาจากทุกประเทศ ไม่ใช่แค่ KP)
 
-![Geo Shortcut Risk](figures/keen_2_*.png)
+![Geo Shortcut Risk](figures/Keen/keen_2_geo_shortcut.png)
 
 ## 3. TTL Leakage
 
@@ -24,7 +24,7 @@
 
 **ตัดสินใจ/เข้าใจอะไร:** ฟีเจอร์ TTL เป็น Data Leakage จาก Lab Setup -> ต้องทดลองเทรนทั้งมีและไม่มี TTL สอดคล้องกับ features.yaml ที่แยก check: [sttl, dttl, ct_state_ttl] ไว้
 
-![TTL Leakage](figures/keen_3_*.png)
+![TTL Leakage](figures/Keen/keen_3_ttl_leakage.png)
 
 ## 4. Heavy-tailed Distributions
 
@@ -32,7 +32,7 @@
 
 **ตัดสินใจ/เข้าใจอะไร:** ใช้ log10(x+1) transform ก่อนเข้าโมเดล Linear/NN เพื่อลด skewness หรือเลือกใช้ Tree-based model (XGBoost/LightGBM) ที่ไม่ไวต่อ scale
 
-![Heavy-tailed Distributions](figures/keen_4_*.png)
+![Heavy-tailed Distributions](figures/Keen/keen_4_heavy_tailed.png)
 
 ## 5. Protocol & Service Profiling
 
@@ -40,7 +40,7 @@
 
 **ตัดสินใจ/เข้าใจอะไร:** จัดกลุ่ม proto ที่พบน้อยรวมเป็น 'other' เพื่อลดมิติ One-Hot Encoding ฟีเจอร์ service มีประโยชน์ในการแยก attack type ควรเก็บไว้
 
-![Protocol & Service Profiling](figures/keen_5_*.png)
+![Protocol & Service Profiling](figures/Keen/keen_5_proto_service.png)
 
 ## 6. Multicollinearity
 
@@ -48,7 +48,7 @@
 
 **ตัดสินใจ/เข้าใจอะไร:** คู่ที่ซ้ำซ้อนมาก (เช่น ct_srv_src <-> ct_srv_dst) สามารถตัดตัวหนึ่งออกได้ เพื่อลดมิติ หรือปล่อยให้ Tree-based model จัดการเอง แต่ต้องระวังตอน interpret
 
-![Multicollinearity](figures/keen_6_*.png)
+![Multicollinearity](figures/Keen/keen_6_correlation.png)
 
 ## 7. Label Conflicts
 
@@ -56,7 +56,7 @@
 
 **ตัดสินใจ/เข้าใจอะไร:** โมเดลไม่มีทางทำนาย Backdoor/Analysis ได้ถูก 100% เพราะมี Noise/Ambiguity ในตัวข้อมูล ควรรายงานขีดจำกัดนี้ใน report และใช้เป็น upper bound สำหรับ evaluation
 
-![Label Conflicts](figures/keen_7_*.png)
+![Label Conflicts](figures/Keen/keen_7_label_conflicts.png)
 
 ---
 *สร้างอัตโนมัติจาก progress3/eda.py*
