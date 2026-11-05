@@ -251,3 +251,5 @@ print("ตารางเปรียบเทียบผลลัพธ์ Log
 print("=" * 70)
 print(df_summary.to_string(index=False))
 print("=" * 70)
+
+# %%
