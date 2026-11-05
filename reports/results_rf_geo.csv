@@ -1,0 +1,5 @@
+﻿time,model,split,macro_f1,pr_auc,recall,params
+2026-11-04 10:13,rf_geo,val,0.5997,0.6276,0.6756,"{'n_estimators': 60, 'max_depth': None, 'min_samples_leaf': 2, 'max_features': 'sqrt', 'class_weight': 'balanced_subsample'}"
+2026-11-04 10:17,rf_geo,test,0.5867,0.5998,0.662,"{'n_estimators': 60, 'max_depth': None, 'min_samples_leaf': 2, 'max_features': 'sqrt', 'class_weight': 'balanced_subsample'}"
+2026-11-04 23:12,rf_geo,val,0.5884,0.6118,0.6642,"{'n_estimators': 30, 'max_depth': None, 'min_samples_leaf': 2, 'max_features': 'sqrt', 'class_weight': 'balanced_subsample'}"
+2026-11-04 23:16,rf_geo,test,0.5869,0.5942,0.6648,"{'n_estimators': 30, 'max_depth': None, 'min_samples_leaf': 2, 'max_features': 'sqrt', 'class_weight': 'balanced_subsample'}"
