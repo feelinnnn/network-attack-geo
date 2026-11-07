@@ -1,0 +1,8 @@
+﻿time,model,split,macro_f1,pr_auc,recall,params
+2026-11-05 20:04,logreg,val,0.3833,0.3292,0.6171,"{'C': 1.0, 'max_iter': 500, 'class_weight': 'balanced', 'solver': 'lbfgs', 'ttl': False}"
+2026-11-05 20:04,logreg,test,0.3777,0.3283,0.5981,"{'C': 1.0, 'max_iter': 500, 'class_weight': 'balanced', 'solver': 'lbfgs', 'ttl': False}"
+2026-11-06 22:51,logreg,val,0.3808,0.3365,0.6159,"{'C': 1.0, 'max_iter': 500, 'class_weight': 'balanced', 'solver': 'lbfgs', 'ttl': False, 'n_normal': 50000}"
+2026-11-06 22:51,logreg,val,0.3804,0.3341,0.6142,"{'C': 1.0, 'max_iter': 500, 'class_weight': 'balanced', 'solver': 'lbfgs', 'ttl': False, 'n_normal': 100000}"
+2026-11-06 22:53,logreg,val,0.3814,0.3343,0.6142,"{'C': 1.0, 'max_iter': 500, 'class_weight': 'balanced', 'solver': 'lbfgs', 'ttl': False, 'n_normal': 200000}"
+2026-11-06 22:55,logreg,val,0.3834,0.3356,0.6152,"{'C': 1.0, 'max_iter': 500, 'class_weight': 'balanced', 'solver': 'lbfgs', 'ttl': False, 'n_normal': 500000}"
+2026-11-06 22:59,logreg,val,0.3836,0.3396,0.6174,"{'C': 1.0, 'max_iter': 500, 'class_weight': 'balanced', 'solver': 'lbfgs', 'ttl': False, 'n_normal': 900000}"
