@@ -1,0 +1,3 @@
+﻿time,model,split,macro_f1,pr_auc,recall,params
+2026-11-07 23:20,iforest_ttl,val,0.7616,0.5374,0.9366,"{'n_estimators': 100, 'max_samples': 256, 'contamination': 0.13, 'max_features': 1.0, 'ttl': True, 'geo': False}"
+2026-11-07 23:21,iforest_ttl,test,0.759,0.4919,0.9362,"{'n_estimators': 100, 'max_samples': 256, 'contamination': 0.13, 'max_features': 1.0, 'ttl': True, 'geo': False}"

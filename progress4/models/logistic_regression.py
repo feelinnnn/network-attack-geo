@@ -1,9 +1,10 @@
 """Progress 4 — Logistic Regression (Art)
 
 Input : data/processed/train.parquet, val.parquet, test.parquet  (จาก split.py)
-Output: reports/results_logreg.csv          (metrics.py เขียนให้เมื่อเรียก evaluate)
-        reports/results_logreg_ttl.csv      (รอบมี TTL - Data Leakage)
-        reports/results_logreg_geo.csv      (รอบมี Geo - Shortcut Learning)
+Output: reports/results_logreg.csv          (รอบ 1: Base — Without TTL / Without Geo)
+        reports/results_logreg_ttl.csv      (รอบ 2: With TTL — Leakage Test)
+        reports/results_logreg_geo.csv      (รอบ 3: Base + Geo — Shortcut Learning Test)
+        reports/results_logreg_ttl_geo.csv  (รอบ 4: With TTL + Geo — Full Features)
         reports/figures/logreg_*.png        (กราฟของตัวเอง)
         reports/model_logreg.md             (สรุปผล)
 
@@ -494,10 +495,127 @@ print(f"  [Val ] Macro F1: {res_val_geo['macro_f1']:.4f} | PR-AUC: {res_val_geo[
 print(f"  [Test] Macro F1: {res_test_geo['macro_f1']:.4f} | PR-AUC: {res_test_geo['pr_auc']:.4f} | Recall: {res_test_geo['recall']:.4f}")
 
 # ==============================================================================
-# PART 4: COMPARISON (เปรียบเทียบผลลัพธ์ 3 มิติ: Base vs TTL vs Geo)
+# PART 4: LOGISTIC REGRESSION (WITH TTL + GEO — FULL ABLATION TEST)
 # ==============================================================================
 
-# %% [8] PART 4: สรุปตารางเปรียบเทียบผลลัพธ์ทุกรูปแบบ (Base vs TTL vs Geo)
+# %% [8] PART 4: โหลดข้อมูล และเตรียม Preprocessor แบบ With TTL + Geo (45 คอลัมน์)
+print("\n" + "=" * 60)
+print("PART 4: เริ่มการทำงานรอบ With TTL + Geo (Full Leakage & Shortcut Test)")
+print("=" * 60)
+
+# 1. โหลดข้อมูลพร้อมฟีเจอร์ TTL และ Geo (extra=FEAT["check"] + FEAT["geo"]) รวม 45 คอลัมน์
+print("กำลังโหลดข้อมูล Train และ Val (With TTL + Geo)...")
+extra_ttl_geo = FEAT["check"] + FEAT["geo"]
+X_train_ttl_geo_raw, y_train_ttl_geo_raw = load_split("train", extra=extra_ttl_geo)
+X_val_ttl_geo, y_val_ttl_geo = load_split("val", extra=extra_ttl_geo)
+
+N_NORMAL_TTL_GEO = 800000
+
+X_train_ttl_geo, y_train_ttl_geo = undersample_normal(X_train_ttl_geo_raw, y_train_ttl_geo_raw, n_normal=N_NORMAL_TTL_GEO)
+
+print(f"  - ขนาด X_train_ttl_geo: {X_train_ttl_geo.shape} (Normal: {(y_train_ttl_geo == 'Normal').sum():,} แถว, Attack: {(y_train_ttl_geo != 'Normal').sum():,} แถว)")
+print(f"  - ขนาด X_val_ttl_geo  : {X_val_ttl_geo.shape}")
+print(f"  - ฟีเจอร์ที่เพิ่ม: TTL {FEAT['check']} + Geo {FEAT['geo']}")
+
+# 2. แยกประเภทคอลัมน์ และแปลงคอลัมน์ Categorical เป็น string
+cat_cols_ttl_geo = [c for c in FEAT["categorical"] if c in X_train_ttl_geo.columns]
+for c in cat_cols_ttl_geo:
+    X_train_ttl_geo[c] = X_train_ttl_geo[c].astype(str)
+    X_val_ttl_geo[c] = X_val_ttl_geo[c].astype(str)
+
+num_cols_ttl_geo = [c for c in X_train_ttl_geo.columns if c not in cat_cols_ttl_geo]
+
+skewed_cols_ttl_geo = [c for c in SKEWED_FLOW_COLS if c in num_cols_ttl_geo]
+other_num_cols_ttl_geo = [c for c in num_cols_ttl_geo if c not in skewed_cols_ttl_geo]
+
+print(f"  - Categorical ({len(cat_cols_ttl_geo)} คอลัมน์ รวมถึง Geo): {cat_cols_ttl_geo}")
+print(f"  - Skewed Flow ({len(skewed_cols_ttl_geo)} คอลัมน์ ทำ log1p + StandardScaler): {skewed_cols_ttl_geo[:4]}...")
+print(f"  - Other Numeric ({len(other_num_cols_ttl_geo)} คอลัมน์ รวม TTL ทำ StandardScaler): {other_num_cols_ttl_geo}")
+
+# 3. สร้าง Preprocessor และ Pipeline สำหรับ With TTL + Geo
+log_scaler_ttl_geo = Pipeline([
+    ("log1p", FunctionTransformer(np.log1p, feature_names_out="one-to-one")),
+    ("scaler", StandardScaler()),
+])
+
+prep_ttl_geo = ColumnTransformer(
+    transformers=[
+        ("log_num", log_scaler_ttl_geo, skewed_cols_ttl_geo),
+        ("std_num", StandardScaler(), other_num_cols_ttl_geo),
+        ("cat", OneHotEncoder(handle_unknown="ignore"), cat_cols_ttl_geo),
+    ]
+)
+
+params_ttl_geo = {
+    "C": 1.0,
+    "max_iter": 500,
+    "class_weight": "balanced",
+    "solver": "lbfgs",
+    "geo": True,
+    "ttl": True,
+    "log1p": True,
+    "n_normal": N_NORMAL_TTL_GEO if N_NORMAL_TTL_GEO is not None else "full",
+}
+
+model_ttl_geo = Pipeline([
+    ("prep", prep_ttl_geo),
+    ("clf", LogisticRegression(
+        C=params_ttl_geo["C"],
+        max_iter=params_ttl_geo["max_iter"],
+        class_weight=params_ttl_geo["class_weight"],
+        solver=params_ttl_geo["solver"],
+        random_state=SEED,
+    )),
+])
+print(f"✓ ประกอบ Pipeline With TTL + Geo เรียบร้อย (n_normal = {params_ttl_geo['n_normal']})")
+
+# %% [9] PART 4: ฝึกสอนและประเมินผล With TTL + Geo (Full Leakage & Shortcut Test)
+print("กำลังฝึกสอนโมเดล Logistic Regression (With TTL + Geo)...")
+model_ttl_geo.fit(X_train_ttl_geo, y_train_ttl_geo)
+print("✓ เทรน With TTL + Geo เสร็จเรียบร้อย!")
+
+# ทำนายและประเมินผลบน Validation Set
+y_pred_val_ttl_geo = model_ttl_geo.predict(X_val_ttl_geo)
+y_score_val_ttl_geo = model_ttl_geo.predict_proba(X_val_ttl_geo)
+classes_ttl_geo = model_ttl_geo.classes_ if hasattr(model_ttl_geo, "classes_") else model_ttl_geo.named_steps["clf"].classes_
+
+res_val_ttl_geo = evaluate(
+    y_true=y_val_ttl_geo,
+    y_pred=y_pred_val_ttl_geo,
+    y_score=y_score_val_ttl_geo,
+    score_classes=classes_ttl_geo,
+    model="logreg_ttl_geo",
+    split="val",
+    params=params_ttl_geo,
+)
+
+# ทำนายและประเมินผลบน Test Set
+X_test_ttl_geo, y_test_ttl_geo = load_split("test", extra=extra_ttl_geo)
+for c in cat_cols_ttl_geo:
+    X_test_ttl_geo[c] = X_test_ttl_geo[c].astype(str)
+
+y_pred_test_ttl_geo = model_ttl_geo.predict(X_test_ttl_geo)
+y_score_test_ttl_geo = model_ttl_geo.predict_proba(X_test_ttl_geo)
+
+res_test_ttl_geo = evaluate(
+    y_true=y_test_ttl_geo,
+    y_pred=y_pred_test_ttl_geo,
+    y_score=y_score_test_ttl_geo,
+    score_classes=classes_ttl_geo,
+    model="logreg_ttl_geo",
+    split="test",
+    params=params_ttl_geo,
+)
+
+print("✓ บันทึกผล TTL + Geo ลง reports/results_logreg_ttl_geo.csv เรียบร้อยแล้ว")
+print(f"  [Val ] Macro F1: {res_val_ttl_geo['macro_f1']:.4f} | PR-AUC: {res_val_ttl_geo['pr_auc']:.4f} | Recall: {res_val_ttl_geo['recall']:.4f}")
+print(f"  [Test] Macro F1: {res_test_ttl_geo['macro_f1']:.4f} | PR-AUC: {res_test_ttl_geo['pr_auc']:.4f} | Recall: {res_test_ttl_geo['recall']:.4f}")
+
+# ==============================================================================
+# PART 5: COMPARISON (เปรียบเทียบผลลัพธ์ 4 มิติ: Base vs TTL vs Geo vs TTL+Geo)
+# ==============================================================================
+
+# %% [10] PART 5: สรุปตารางเปรียบเทียบผลลัพธ์ทุกรูปแบบ (2x2 Factorial Ablation)
 # นำผลลัพธ์จากทั้งสองรอบ grid (Base vs TTL) มาประกบข้างกันถ้ามี
 if "grid_results" in locals() and "grid_results_ttl" in locals() and len(grid_results) > 0 and len(grid_results_ttl) > 0:
     df_base = pd.DataFrame(grid_results)
@@ -518,13 +636,15 @@ if "grid_results" in locals() and "grid_results_ttl" in locals() and len(grid_re
     print(comp_df.to_string(index=False))
     print("=" * 80)
 
-# แสดงตารางสรุป 3 โมเดลหลัก
+# แสดงตารางสรุป 4 โมเดลหลักแบบ 2x2 Factorial Design
 summary_data = []
 
 if "res_val_base" in locals() and "res_test_base" in locals():
     summary_data.append({
-        "Model": "1. Base (Without TTL/Geo)",
-        "Features": "38 (Traffic Flow Only)",
+        "Model": "1. Base (Clean)",
+        "Features": "38 (Flow Only)",
+        "TTL": "No",
+        "Geo": "No",
         "Val Macro F1": round(res_val_base["macro_f1"], 4),
         "Val PR-AUC": round(res_val_base["pr_auc"], 4),
         "Val Recall": round(res_val_base["recall"], 4),
@@ -534,8 +654,10 @@ if "res_val_base" in locals() and "res_test_base" in locals():
 
 if "res_val_ttl" in locals() and "res_test_ttl" in locals():
     summary_data.append({
-        "Model": "2. With TTL (Data Leakage)",
+        "Model": "2. With TTL (Leakage)",
         "Features": "41 (Base + 3 TTL)",
+        "TTL": "Yes",
+        "Geo": "No",
         "Val Macro F1": round(res_val_ttl["macro_f1"], 4),
         "Val PR-AUC": round(res_val_ttl["pr_auc"], 4),
         "Val Recall": round(res_val_ttl["recall"], 4),
@@ -545,8 +667,10 @@ if "res_val_ttl" in locals() and "res_test_ttl" in locals():
 
 if "res_val_geo" in locals() and "res_test_geo" in locals():
     summary_data.append({
-        "Model": "3. With Geo (Shortcut Learning)",
+        "Model": "3. Base + Geo (Shortcut)",
         "Features": "42 (Base + 4 Geo)",
+        "TTL": "No",
+        "Geo": "Yes",
         "Val Macro F1": round(res_val_geo["macro_f1"], 4),
         "Val PR-AUC": round(res_val_geo["pr_auc"], 4),
         "Val Recall": round(res_val_geo["recall"], 4),
@@ -554,21 +678,34 @@ if "res_val_geo" in locals() and "res_test_geo" in locals():
         "Test PR-AUC": round(res_test_geo["pr_auc"], 4),
     })
 
+if "res_val_ttl_geo" in locals() and "res_test_ttl_geo" in locals():
+    summary_data.append({
+        "Model": "4. With TTL + Geo (Full)",
+        "Features": "45 (Base + TTL + Geo)",
+        "TTL": "Yes",
+        "Geo": "Yes",
+        "Val Macro F1": round(res_val_ttl_geo["macro_f1"], 4),
+        "Val PR-AUC": round(res_val_ttl_geo["pr_auc"], 4),
+        "Val Recall": round(res_val_ttl_geo["recall"], 4),
+        "Test Macro F1": round(res_test_ttl_geo["macro_f1"], 4),
+        "Test PR-AUC": round(res_test_ttl_geo["pr_auc"], 4),
+    })
+
 df_summary = pd.DataFrame(summary_data)
 
-print("\n" + "=" * 85)
-print("ตารางเปรียบเทียบผลลัพธ์ Logistic Regression (Base vs TTL vs Geo):")
-print("=" * 85)
+print("\n" + "=" * 95)
+print("ตารางเปรียบเทียบผลลัพธ์ Logistic Regression (2x2 Factorial: Base vs TTL vs Geo vs TTL+Geo):")
+print("=" * 95)
 print(df_summary.to_string(index=False))
-print("=" * 85)
+print("=" * 95)
 
 # ==============================================================================
-# PART 5: VISUALIZATIONS (สร้างรูปภาพสำหรับรายงาน Progress 4)
+# PART 6: VISUALIZATIONS (สร้างรูปภาพสำหรับรายงาน Progress 4)
 # ==============================================================================
 
-# %% [9] PART 5: สร้างกราฟผลลัพธ์ลง reports/figures/
+# %% [11] PART 6: สร้างกราฟผลลัพธ์ลง reports/figures/
 print("\n" + "=" * 60)
-print("PART 5: กำลังสร้างกราฟสรุปผลลัพธ์ลง reports/figures/...")
+print("PART 6: กำลังสร้างกราฟสรุปผลลัพธ์ลง reports/figures/...")
 print("=" * 60)
 
 fig_dir = repo_root / "reports" / "figures"
@@ -602,7 +739,7 @@ if "y_test_base" in locals() and "y_pred_test_base" in locals():
     print(f"  ✓ บันทึกกราฟ Confusion Matrix: {cm_path.name}")
 
 # ------------------------------------------------------------------------------
-# กราฟที่ 2: เปรียบเทียบผลกระทบของ TTL Leakage และ Geo Shortcut
+# กราฟที่ 2: เปรียบเทียบผลกระทบของ 4 โมเดล (Base vs TTL vs Geo vs TTL+Geo)
 # ------------------------------------------------------------------------------
 if "res_val_base" in locals() and "res_val_ttl" in locals():
     metrics_names = ["Macro F1", "PR-AUC", "Recall"]
@@ -611,14 +748,29 @@ if "res_val_base" in locals() and "res_val_ttl" in locals():
 
     x = np.arange(len(metrics_names))
     
-    if "res_val_geo" in locals():
+    # กรณีมีครบ 4 โมเดล
+    if "res_val_geo" in locals() and "res_val_ttl_geo" in locals():
+        width = 0.2
+        geo_scores = [res_val_geo["macro_f1"], res_val_geo["pr_auc"], res_val_geo["recall"]]
+        ttl_geo_scores = [res_val_ttl_geo["macro_f1"], res_val_ttl_geo["pr_auc"], res_val_ttl_geo["recall"]]
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        bars1 = ax.bar(x - 1.5*width, base_scores, width, label="1. Base (38 feats)", color="#1976D2")
+        bars2 = ax.bar(x - 0.5*width, ttl_scores, width, label="2. With TTL (41 feats)", color="#D32F2F")
+        bars3 = ax.bar(x + 0.5*width, geo_scores, width, label="3. Base + Geo (42 feats)", color="#388E3C")
+        bars4 = ax.bar(x + 1.5*width, ttl_geo_scores, width, label="4. With TTL + Geo (45 feats)", color="#7B1FA2")
+
+        for bars in [bars1, bars2, bars3, bars4]:
+            for bar in bars:
+                yval = bar.get_height()
+                ax.text(bar.get_x() + bar.get_width()/2, yval + 0.01, f"{yval:.3f}", ha="center", va="bottom", fontsize=8, fontweight="bold")
+    elif "res_val_geo" in locals():
         width = 0.25
         geo_scores = [res_val_geo["macro_f1"], res_val_geo["pr_auc"], res_val_geo["recall"]]
         fig, ax = plt.subplots(figsize=(10, 6))
         bars1 = ax.bar(x - width, base_scores, width, label="1. Base (38 feats)", color="#1976D2")
-        bars2 = ax.bar(x, ttl_scores, width, label="2. With TTL (41 feats - Leakage)", color="#D32F2F")
-        bars3 = ax.bar(x + width, geo_scores, width, label="3. With Geo (42 feats - Shortcut)", color="#388E3C")
-
+        bars2 = ax.bar(x, ttl_scores, width, label="2. With TTL (41 feats)", color="#D32F2F")
+        bars3 = ax.bar(x + width, geo_scores, width, label="3. Base + Geo (42 feats)", color="#388E3C")
         for bars in [bars1, bars2, bars3]:
             for bar in bars:
                 yval = bar.get_height()
@@ -627,13 +779,13 @@ if "res_val_base" in locals() and "res_val_ttl" in locals():
         width = 0.35
         fig, ax = plt.subplots(figsize=(8, 6))
         bars1 = ax.bar(x - width/2, base_scores, width, label="Without TTL (38 feats)", color="#1976D2")
-        bars2 = ax.bar(x + width/2, ttl_scores, width, label="With TTL (41 feats - Leakage)", color="#D32F2F")
+        bars2 = ax.bar(x + width/2, ttl_scores, width, label="With TTL (41 feats)", color="#D32F2F")
         for bars in [bars1, bars2]:
             for bar in bars:
                 yval = bar.get_height()
                 ax.text(bar.get_x() + bar.get_width()/2, yval + 0.01, f"{yval:.3f}", ha="center", va="bottom", fontsize=10, fontweight="bold")
 
-    ax.set_title("Performance Comparison: Base vs TTL Leakage vs Geo Shortcut", fontsize=13, fontweight="bold", pad=12)
+    ax.set_title("Performance Comparison across All Feature Configurations", fontsize=13, fontweight="bold", pad=12)
     ax.set_ylabel("Validation Score", fontsize=11, fontweight="bold")
     ax.set_xticks(x)
     ax.set_xticklabels(metrics_names, fontsize=11, fontweight="bold")
@@ -649,7 +801,16 @@ if "res_val_base" in locals() and "res_val_ttl" in locals():
 # ------------------------------------------------------------------------------
 # กราฟที่ 3: Top Feature Coefficients (สัมประสิทธิ์ฟีเจอร์สำคัญ)
 # ------------------------------------------------------------------------------
-target_model = model_geo if "model_geo" in locals() and hasattr(model_geo.named_steps["clf"], "coef_") else (model_base if "model_base" in locals() and hasattr(model_base.named_steps["clf"], "coef_") else None)
+target_model = None
+model_title = "Base Model"
+for m, title in [(model_ttl_geo if "model_ttl_geo" in locals() else None, "With TTL + Geo"),
+                 (model_geo if "model_geo" in locals() else None, "Base + Geo"),
+                 (model_base if "model_base" in locals() else None, "Base Model")]:
+    if m is not None and hasattr(m.named_steps["clf"], "coef_"):
+        target_model = m
+        model_title = title
+        break
+
 if target_model is not None:
     try:
         clf_step = target_model.named_steps["clf"]
@@ -665,7 +826,6 @@ if target_model is not None:
 
         fig, ax = plt.subplots(figsize=(10, 6))
         sns.barplot(x=coef_series.values, y=clean_names, palette="viridis", ax=ax)
-        model_title = "Base + Geo" if target_model == model_geo else "Base Model"
         ax.set_title(f"Top 15 Feature Importances ({model_title}) — Mean |Coefficient|", fontsize=13, fontweight="bold", pad=12)
         ax.set_xlabel("Mean Absolute Weight (|β|)", fontsize=11, fontweight="bold")
         ax.set_ylabel("Feature", fontsize=11, fontweight="bold")

@@ -1,3 +1,11 @@
 ﻿time,model,split,macro_f1,pr_auc,recall,params
 2026-11-05 21:12,iforest,val,0.722,0.4435,0.8647,"{'n_estimators': 100, 'max_samples': 256, 'contamination': 0.13, 'ttl': False}"
 2026-11-05 21:12,iforest,test,0.7206,0.3977,0.8667,"{'n_estimators': 100, 'max_samples': 256, 'contamination': 0.13, 'ttl': False}"
+2026-11-07 23:20,iforest,val,0.722,0.4435,0.8647,"{'n_estimators': 100, 'max_samples': 256, 'contamination': 0.13, 'max_features': 1.0, 'ttl': False, 'geo': False}"
+2026-11-07 23:20,iforest,test,0.7206,0.3977,0.8667,"{'n_estimators': 100, 'max_samples': 256, 'contamination': 0.13, 'max_features': 1.0, 'ttl': False, 'geo': False}"
+2026-11-07 23:20,iforest,val,0.6147,0.4435,0.585,"{'n_estimators': 100, 'max_samples': 256, 'contamination': 0.03, 'max_features': 1.0, 'ttl': False, 'geo': False}"
+2026-11-07 23:20,iforest,val,0.6302,0.4435,0.6083,"{'n_estimators': 100, 'max_samples': 256, 'contamination': 0.05, 'max_features': 1.0, 'ttl': False, 'geo': False}"
+2026-11-07 23:20,iforest,val,0.6718,0.4435,0.6699,"{'n_estimators': 100, 'max_samples': 256, 'contamination': 0.08, 'max_features': 1.0, 'ttl': False, 'geo': False}"
+2026-11-07 23:20,iforest,val,0.7,0.4435,0.7208,"{'n_estimators': 100, 'max_samples': 256, 'contamination': 0.1, 'max_features': 1.0, 'ttl': False, 'geo': False}"
+2026-11-07 23:20,iforest,val,0.7331,0.4435,0.7974,"{'n_estimators': 100, 'max_samples': 256, 'contamination': 0.13, 'max_features': 1.0, 'ttl': False, 'geo': False}"
+2026-11-07 23:20,iforest,val,0.7343,0.4435,0.8269,"{'n_estimators': 100, 'max_samples': 256, 'contamination': 0.15, 'max_features': 1.0, 'ttl': False, 'geo': False}"

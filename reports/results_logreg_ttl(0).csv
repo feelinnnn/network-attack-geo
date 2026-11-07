@@ -1,3 +1,0 @@
-﻿time,model,split,macro_f1,pr_auc,recall,params
-2026-11-05 12:00,logreg_ttl,val,0.4179,0.4037,0.6268,"{'C': 1.0, 'max_iter': 500, 'class_weight': 'balanced', 'solver': 'lbfgs', 'ttl': True}"
-2026-11-05 12:01,logreg_ttl,test,0.4143,0.3985,0.6129,"{'C': 1.0, 'max_iter': 500, 'class_weight': 'balanced', 'solver': 'lbfgs', 'ttl': True}"
