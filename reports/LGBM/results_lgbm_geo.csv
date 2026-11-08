@@ -1,0 +1,7 @@
+﻿time,model,split,macro_f1,pr_auc,recall,params
+2026-11-08 12:55,lgbm_geo,val,0.6159,0.6379,0.7227,"{'n_estimators': 150, 'learning_rate': 0.05, 'num_leaves': 63, 'class_weight': 'balanced'}"
+2026-11-08 12:56,lgbm_geo,test,0.6013,0.6141,0.7134,"{'n_estimators': 150, 'learning_rate': 0.05, 'num_leaves': 63, 'class_weight': 'balanced'}"
+2026-11-08 14:09,lgbm_geo,val,0.6267,0.6485,0.7461,"{'n_estimators': 150, 'learning_rate': 0.05, 'num_leaves': 63, 'class_weight': 'balanced', 'colsample_bytree': 0.8, 'min_child_samples': 50}"
+2026-11-08 14:10,lgbm_geo,test,0.6062,0.6161,0.7231,"{'n_estimators': 150, 'learning_rate': 0.05, 'num_leaves': 63, 'class_weight': 'balanced', 'colsample_bytree': 0.8, 'min_child_samples': 50}"
+2026-11-08 15:09,lgbm_geo,val,0.6212,0.6459,0.7429,"{'n_estimators': 150, 'learning_rate': 0.05, 'num_leaves': 63, 'class_weight': 'balanced', 'colsample_bytree': 0.75, 'min_child_samples': 50}"
+2026-11-08 15:09,lgbm_geo,test,0.6051,0.6156,0.7251,"{'n_estimators': 150, 'learning_rate': 0.05, 'num_leaves': 63, 'class_weight': 'balanced', 'colsample_bytree': 0.75, 'min_child_samples': 50}"
