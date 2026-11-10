@@ -1,0 +1,9 @@
+﻿time,model,split,macro_f1,pr_auc,recall,params
+2026-11-04 20:04,lgbm_ttl,val,0.6387,0.6569,0.7517,"{'n_estimators': 150, 'learning_rate': 0.05, 'num_leaves': 63, 'class_weight': 'balanced'}"
+2026-11-04 20:04,lgbm_ttl,test,0.6152,0.635,0.7327,"{'n_estimators': 150, 'learning_rate': 0.05, 'num_leaves': 63, 'class_weight': 'balanced'}"
+2026-11-08 13:02,lgbm_ttl,val,0.6387,0.6569,0.7517,"{'n_estimators': 150, 'learning_rate': 0.05, 'num_leaves': 63, 'class_weight': 'balanced'}"
+2026-11-08 13:02,lgbm_ttl,test,0.6152,0.635,0.7327,"{'n_estimators': 150, 'learning_rate': 0.05, 'num_leaves': 63, 'class_weight': 'balanced'}"
+2026-11-08 14:11,lgbm_ttl,val,0.6339,0.6659,0.7527,"{'n_estimators': 150, 'learning_rate': 0.05, 'num_leaves': 63, 'class_weight': 'balanced', 'colsample_bytree': 0.8, 'min_child_samples': 50}"
+2026-11-08 14:12,lgbm_ttl,test,0.6176,0.6378,0.7397,"{'n_estimators': 150, 'learning_rate': 0.05, 'num_leaves': 63, 'class_weight': 'balanced', 'colsample_bytree': 0.8, 'min_child_samples': 50}"
+2026-11-08 15:11,lgbm_ttl,val,0.6356,0.6625,0.7589,"{'n_estimators': 150, 'learning_rate': 0.05, 'num_leaves': 63, 'class_weight': 'balanced', 'colsample_bytree': 0.75, 'min_child_samples': 50}"
+2026-11-08 15:12,lgbm_ttl,test,0.6183,0.6323,0.7408,"{'n_estimators': 150, 'learning_rate': 0.05, 'num_leaves': 63, 'class_weight': 'balanced', 'colsample_bytree': 0.75, 'min_child_samples': 50}"
